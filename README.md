@@ -93,7 +93,7 @@ Paths are relative to `data/` (real run) or `exp/demo/work/` (demo). `interim/` 
 | 07_new_accounts | firehose, crowd, labels | accounts not in the snapshot: features from the first 24 h after first seen | processed/accounts_new.parquet |
 | 10_toxicity | text samples | Detoxify multilingual on up to 5 posts per account (4 GPUs, resumable chunks) | processed/tox_{established,new}.parquet |
 | 11_toxicity_multi | same posts | TextDetox XLM-R v2 for most languages, kor_unsmile for Korean | processed/tox2_{established,new}.parquet |
-| 08_rq1_models | processed/, labels | two XGBoost models on the same features: B = block burst (5+ new blockers in 30 days), T = platform action; out-of-fold AUC, SHAP, rank correlation of importances | results/RQ1/<tag>/ (F40 SHAP, T40-T42) |
+| 08_rq1_models | processed/, labels | two XGBoost models on the same features: B = block burst (5+ new blockers in 30 days), T = platform action; trained on 70%, early stopping on 10%, AUC and SHAP on a held-out 20%; rank correlation of importances | results/RQ1/<tag>/ (F40 SHAP, T40-T42) |
 | R_rq1_final / response / language / blockers | RQ1 runs, labels, crowd | four groups (blocked only, removed only, both, neither), lift of each action after a burst, results by language, ordinary vs heavy blockers | results/RQ1/{final,response,language,blockers} |
 | 12_rq2_timing | processed/, crowd, labels | crowd alert (5th ordinary blocker) vs first platform action: who first, lead time, Kaplan-Meier, Cox | results/RQ2 (F90-F95) |
 | 13_rq2_extra | same | ranking accounts by crowd signal as a review queue, follower bands, event study around takedown | results/RQ2/extra (F96-F99) |

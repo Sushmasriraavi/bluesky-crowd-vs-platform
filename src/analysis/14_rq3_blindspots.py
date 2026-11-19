@@ -6,7 +6,7 @@ Established cohort, same 30-day window as RQ1/RQ2 (T0 = 9 April 2026). Crowd sig
 suspension or takedown (review flags are triage and reported apart) (adult-content labels are content warnings, reported separately).
 
 An INDEPENDENT judge: an XGBoost model trained to recognise accounts that got a platform abuse label, from behaviour,
-multilingual toxicity (step 11) and language only - no block or list data - scored out-of-fold (5 folds), so every
+multilingual toxicity (step 11) only - no language, block or list data - scored out-of-fold (5 folds), so every
 account is judged by a model that never saw it. "Abuse-like" = score at or above the median score of the accounts
 that really got an abuse label (the model's 50%-recall point).
 
@@ -176,7 +176,7 @@ def main():
     ax.set_title("How abuse-like are the accounts the crowd flags but the platform leaves?", fontsize=10)
     ax.legend(fontsize=7, loc="upper left")
     viz.save(f, R, "F104_judge_scores", "Dotted line: the score reached by half of the accounts that really got an abuse label "
-             "(the 'abuse-like' threshold). Judge uses behaviour, multilingual toxicity and language, never blocks.")
+             "(the 'abuse-like' threshold). Judge uses behaviour and multilingual toxicity, never language or blocks.")
 
     # ---------- groups overview
     rows = []

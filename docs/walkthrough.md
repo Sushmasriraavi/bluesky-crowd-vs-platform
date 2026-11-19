@@ -45,7 +45,7 @@ Quick look at any table:  `python3 -c "import pandas as pd; print(pd.read_parque
 4. Toxicity: chunked, resumable, one worker per GPU; model choice per post language (XLM-R v2, Korean model).
    In the demo only the model call is replaced (`--demo`).
 5. Analysis:
-   - RQ1 (08): two XGBoost models on the same features, out-of-fold predictions, SHAP from XGBoost
+   - RQ1 (08): two XGBoost models on the same features, held-out 20% test set, SHAP from XGBoost
      (pred_contribs), Spearman correlation of importances, several seeds for uncertainty.
    - RQ2 (12, 13): crowd alert = 5th ordinary blocker; compare with the first platform action; Kaplan-Meier
      and Cox (lifelines); queue test = rank accounts by crowd signal vs random.
