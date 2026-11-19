@@ -1,0 +1,40 @@
+digraph G {
+  rankdir=LR; nodesep=0.3; ranksep=0.5; fontname="Helvetica"; newrank=true; splines=spline;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#ffffff", color="#555555"];
+  edge [color="#777777", arrowsize=0.6];
+
+  subgraph cluster_in { label="1. INPUT  data/raw/\n(private; fake copy in data/demo/raw)"; style="rounded,filled"; fillcolor="#eef3fb"; color="#9db3d8"; fontsize=11;
+    snap [label="Snapshot (parquet)\nblocks, follows, lists,\nposts, profiles"];
+    fh   [label="Firehose (json.gz)\n61 days, Apr-May 2026"];
+    lab  [label="Official labeler (parquet)\nlabels 2023 - Jul 2026"];
+  }
+  subgraph cluster_prep { label="2. DATA PREPARATION  src/pipeline/  (exp/run_prepare.sh)"; style="rounded,filled"; fillcolor="#f3f3f3"; color="#bbbbbb"; fontsize=11;
+    s02 [label="02 snapshot tables\n05 snapshot timing"];
+    s01 [label="01 firehose -> parquet"];
+    s03 [label="03 label outcomes"];
+    s04 [label="04 crowd signals\n(block + mod-list edges)"];
+    s67 [label="06 established accounts (features before T0)\n07 new accounts (first 24 h features)"];
+  }
+  hub [label="clean tables\ndata/interim, data/processed\naccounts_T0 / accounts_new,\nlabel events, block edges", shape=cylinder, fillcolor="#fffbe6", color="#c9b45c"];
+  subgraph cluster_tox { label="3. TOXICITY  (GPU)"; style="rounded,filled"; fillcolor="#fbf1e8"; color="#e0b48c"; fontsize=11;
+    tox [label="10 Detoxify multilingual\n11 XLM-R v2 + Korean model\n(--demo: word-list scorer)"];
+  }
+  subgraph cluster_an { label="4. ANALYSIS  src/analysis/  (exp/run_rq*.sh)"; style="rounded,filled"; fillcolor="#eef7ee"; color="#9cc79c"; fontsize=11;
+    rq1 [label="RQ1 alignment\n08 two XGBoost models + SHAP\nR_rq1_* (groups, lift, language, blockers)"];
+    rq2 [label="RQ2 timing\n12 who acts first, lead time, KM, Cox\n13 review queue, event study"];
+    rq3 [label="RQ3 blind spots\n14 judge model, crowd-only vs\nplatform-only, validation"];
+    desc [label="descriptives\nR0, R1/S1, D1, R_tox_*"];
+  }
+  out [label="5. OUTPUT  results/\nfigures (png + pdf)\ntables (csv), logs", shape=note, fillcolor="#fffbe6", color="#c9b45c"];
+
+  snap -> s02; fh -> s01; lab -> s03;
+  s01 -> s04; s02 -> s04;
+  s02 -> s67; s01 -> s67; s03 -> s67; s04 -> s67;
+  s67 -> hub; s03 -> hub; s04 -> hub;
+  hub -> tox; tox -> hub [style=dashed, label=" tox scores", fontsize=9, fontcolor="#777777"];
+  hub -> rq1; hub -> rq2; hub -> rq3; hub -> desc;
+  rq1 -> out; rq2 -> out; rq3 -> out; desc -> out;
+
+  lib [label="src/bskymod  (used by every step)\ncommon.py: config, DuckDB, logging   outcomes.py: platform action definitions   viz.py: figure style", fillcolor="#ffffff", color="#999999", fontsize=9];
+  {rank=sink; lib}
+}

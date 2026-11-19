@@ -1,0 +1,4 @@
+# Only for steps 10/11 on real data (GPU). Install torch for your CUDA version first, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+detoxify
+transformers

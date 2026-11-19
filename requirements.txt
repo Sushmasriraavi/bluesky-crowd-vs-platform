@@ -1,0 +1,11 @@
+# CPU packages (enough for the demo and for every step except 10/11 on real data)
+duckdb>=1.1
+pyarrow>=15
+pandas>=2.1
+numpy
+pyyaml
+scipy
+scikit-learn
+xgboost>=2.0
+lifelines>=0.29
+matplotlib
