@@ -6,19 +6,26 @@ Total about 25 minutes: demo 5-10 min, block-by-block walkthrough 10-15 min.
 
     git clone <repo url> && cd bluesky-crowd-vs-platform
     python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-    bash exp/demo/run_demo.sh
 
-While it runs (about 2 minutes), show for each stage its input and output:
+Run the demo one stage at a time. After each stage the script prints the files it produced; open one
+input and one output per stage:
 
-1. Fake raw data: `data/demo/raw/` - open one firehose line (`zcat data/demo/raw/firehose/2026/04/10/*.gz | head -1`)
-   and one snapshot record. Same format as the real data.
-2. Step 01 output: `exp/demo/work/interim/firehose/posts/day=2026-04-10/part.parquet` (one row per post).
-3. Steps 03-07 output: `exp/demo/work/processed/accounts_T0.parquet` and `accounts_new.parquet`
-   (one row per account: feature columns act_/net_/acc_/new_act_, crowd_ columns, y_ outcomes).
-4. Step 10/11 output: `processed/tox_new.parquet` (tox_mean, tox_max per account).
-5. Analysis outputs: `exp/demo/results/RQ1/main_tox/F40_shap_new.png`, `RQ2/F90_who_first.png`,
-   `RQ3/F104_judge_scores.png`. Point out that the planted pattern comes back (toxic replies drive block
-   bursts; posting volume and links drive takedowns; abuse labels are mostly flagged by the crowd first).
+1. `bash exp/demo/run_demo.sh prepare`
+   Input: `data/demo/raw/` - one firehose line (`zcat data/demo/raw/firehose/2026/04/10/*.gz | head -1`)
+   and the snapshot parquet files (same format as the real data).
+   Output: `exp/demo/work/interim/firehose/posts/...` (one row per post) and
+   `exp/demo/work/processed/accounts_T0.parquet`, `accounts_new.parquet` (one row per account:
+   features act_/net_/acc_/new_act_, crowd_ columns, y_ outcomes).
+2. `bash exp/demo/run_demo.sh toxicity`
+   Output: `processed/tox_new.parquet` (tox_mean, tox_max per account), `results/TOX/`.
+3. `bash exp/demo/run_demo.sh rq1`
+   Output: `results/RQ1/main_tox/F40_shap_new.png` - toxic replies drive block bursts, posting volume and
+   links drive takedowns (the planted pattern comes back).
+4. `bash exp/demo/run_demo.sh rq2`
+   Output: `results/RQ2/F90_who_first.png` - abuse labels are mostly flagged by the crowd first.
+5. `bash exp/demo/run_demo.sh rq3`
+   Output: `results/RQ3/F104_judge_scores.png`, `F105_validation.png`.
+(`robustness` is optional; skip it if time is short.)
 
 Quick look at any table:  `python3 -c "import pandas as pd; print(pd.read_parquet('exp/demo/work/processed/accounts_new.parquet').head())"`
 

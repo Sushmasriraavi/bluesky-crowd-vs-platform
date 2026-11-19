@@ -22,9 +22,18 @@ dataset in exactly the same format is included so the whole pipeline can be run 
     pip install -r requirements.txt
     bash exp/demo/run_demo.sh
 
-This runs every step of the real pipeline on it and writes all
-figures and tables to `exp/demo/results/` (log: `exp/demo/demo_run.log`). The only difference from the real
-run is that the GPU toxicity models are replaced by a word-list scorer (`--demo`), see section 5.
+This runs every step of the real pipeline on the fake data in `data/demo/raw` and writes all figures and
+tables to `exp/demo/results/` (logs: `exp/demo/logs/`). The only difference from the real run is that the
+GPU toxicity models are replaced by a word-list scorer (`--demo`), see section 5.
+
+The demo can also be run one stage at a time; each stage lists the files it produced when it finishes:
+
+    bash exp/demo/run_demo.sh prepare      # stage 1: raw data -> clean tables (steps 00-07)
+    bash exp/demo/run_demo.sh toxicity     # stage 2: toxicity scores (steps 10-11)
+    bash exp/demo/run_demo.sh rq1          # RQ1: crowd vs platform models, SHAP, language
+    bash exp/demo/run_demo.sh robustness   # RQ1 with other definitions
+    bash exp/demo/run_demo.sh rq2          # RQ2: who acts first, lead time, review queue
+    bash exp/demo/run_demo.sh rq3          # RQ3: blind spots
 
 ## 2. Architecture
 
