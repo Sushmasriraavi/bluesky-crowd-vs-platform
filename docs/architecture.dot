@@ -1,40 +1,71 @@
 digraph G {
-  rankdir=LR; nodesep=0.3; ranksep=0.5; fontname="Helvetica"; newrank=true; splines=spline;
-  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#ffffff", color="#555555"];
-  edge [color="#777777", arrowsize=0.6];
+  rankdir=TB; newrank=true; nodesep=0.35; ranksep=0.42; splines=spline; fontname="Helvetica"; compound=true;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9.5, fillcolor="#ffffff", color="#666666", margin="0.12,0.06"];
+  edge [color="#8a8a8a", arrowsize=0.55, fontname="Helvetica", fontsize=8, fontcolor="#555555"];
 
-  subgraph cluster_in { label="1. INPUT  data/raw/\n(private; fake copy in data/demo/raw)"; style="rounded,filled"; fillcolor="#eef3fb"; color="#9db3d8"; fontsize=11;
-    snap [label="Snapshot (parquet)\nblocks, follows, lists,\nposts, profiles"];
-    fh   [label="Firehose (json.gz)\n61 days, Apr-May 2026"];
-    lab  [label="Official labeler (parquet)\nlabels 2023 - Jul 2026"];
+  // ---------------- INPUT
+  subgraph cluster_in { label="1. RAW INPUT  (data/raw;  demo: data/demo/raw)"; style="rounded,filled"; fillcolor="#eef3fb"; color="#9db3d8"; fontsize=11;
+    fh   [label=<<b>Firehose</b><br/>61 day files, json.gz<br/>1 line = 1 event:<br/>did, time, commit.ops>];
+    snap [label=<<b>Snapshot</b><br/>parquet per record type<br/>(block, follow, list, post...)<br/>content = record JSON>];
+    lab  [label=<<b>Official labeler</b><br/>parquet: ts, val, uri, neg<br/>!takedown, needs-review,<br/>rude, porn ...>];
   }
-  subgraph cluster_prep { label="2. DATA PREPARATION  src/pipeline/  (exp/run_prepare.sh)"; style="rounded,filled"; fillcolor="#f3f3f3"; color="#bbbbbb"; fontsize=11;
-    s02 [label="02 snapshot tables\n05 snapshot timing"];
-    s01 [label="01 firehose -> parquet"];
-    s03 [label="03 label outcomes"];
-    s04 [label="04 crowd signals\n(block + mod-list edges)"];
-    s67 [label="06 established accounts (features before T0)\n07 new accounts (first 24 h features)"];
-  }
-  hub [label="clean tables\ndata/interim, data/processed\naccounts_T0 / accounts_new,\nlabel events, block edges", shape=cylinder, fillcolor="#fffbe6", color="#c9b45c"];
-  subgraph cluster_tox { label="3. TOXICITY  (GPU)"; style="rounded,filled"; fillcolor="#fbf1e8"; color="#e0b48c"; fontsize=11;
-    tox [label="10 Detoxify multilingual\n11 XLM-R v2 + Korean model\n(--demo: word-list scorer)"];
-  }
-  subgraph cluster_an { label="4. ANALYSIS  src/analysis/  (exp/run_rq*.sh)"; style="rounded,filled"; fillcolor="#eef7ee"; color="#9cc79c"; fontsize=11;
-    rq1 [label="RQ1 alignment\n08 two XGBoost models + SHAP\nR_rq1_* (groups, lift, language, blockers)"];
-    rq2 [label="RQ2 timing\n12 who acts first, lead time, KM, Cox\n13 review queue, event study"];
-    rq3 [label="RQ3 blind spots\n14 judge model, crowd-only vs\nplatform-only, validation"];
-    desc [label="descriptives\nR0, R1/S1, D1, R_tox_*"];
-  }
-  out [label="5. OUTPUT  results/\nfigures (png + pdf)\ntables (csv), logs", shape=note, fillcolor="#fffbe6", color="#c9b45c"];
 
-  snap -> s02; fh -> s01; lab -> s03;
-  s01 -> s04; s02 -> s04;
-  s02 -> s67; s01 -> s67; s03 -> s67; s04 -> s67;
-  s67 -> hub; s03 -> hub; s04 -> hub;
-  hub -> tox; tox -> hub [style=dashed, label=" tox scores", fontsize=9, fontcolor="#777777"];
-  hub -> rq1; hub -> rq2; hub -> rq3; hub -> desc;
-  rq1 -> out; rq2 -> out; rq3 -> out; desc -> out;
+  // ---------------- PREPARE
+  subgraph cluster_prep { label="2. DATA PREPARATION  (src/pipeline 00-07, DuckDB SQL on files)"; style="rounded,filled"; fillcolor="#f4f4f4"; color="#bbbbbb"; fontsize=11;
+    s01 [label=<<b>01 parse firehose</b><br/>read_json + unnest(ops)<br/>1 row per operation,<br/>split into 5 tables per day>];
+    s02 [label=<<b>02 snapshot tables</b><br/>repo_id -&gt; account id,<br/>JSON fields -&gt; columns>];
+    s05 [label=<<b>05 crawl time</b><br/>decode at_rev (TID)<br/>-&gt; last commit time>];
+    s03 [label=<<b>03 label outcomes</b><br/>account vs post labels,<br/>first takedown / review /<br/>suspend, reversals>];
+    s04 [label=<<b>04 crowd signals</b><br/>block = edge blocker -&gt; account<br/>snapshot + firehose matched on<br/>(author, rkey); delete = unblock>];
+    s06 [label=<<b>06 established accounts</b><br/>index T0 = 9 Apr 2026<br/>features BEFORE T0,<br/>outcomes AFTER T0>];
+    s07 [label=<<b>07 new accounts</b><br/>not in snapshot; index =<br/>first seen + 24 h; features<br/>from first 24 h only>];
+  }
 
-  lib [label="src/bskymod  (used by every step)\ncommon.py: config, DuckDB, logging   outcomes.py: platform action definitions   viz.py: figure style", fillcolor="#ffffff", color="#999999", fontsize=9];
-  {rank=sink; lib}
+  // ---------------- TOXICITY
+  subgraph cluster_tox { label="3. TOXICITY  (10-11, GPU)"; style="rounded,filled"; fillcolor="#fbf1e8"; color="#e0b48c"; fontsize=11;
+    s10 [label=<<b>10 Detoxify</b><br/>5 posts per account,<br/>resumable chunks, 1 GPU each<br/>-&gt; tox_mean, tox_max>];
+    s11 [label=<<b>11 multilingual</b><br/>XLM-R v2 + Korean model<br/>same posts -&gt; tox2_*<br/>(--demo: word list)>];
+  }
+
+  // ---------------- ANALYSIS
+  subgraph cluster_rq1 { label="4a. RQ1  alignment  (08, R_rq1_*)"; style="rounded,filled"; fillcolor="#eef7ee"; color="#9cc79c"; fontsize=11;
+    r1a [label=<<b>remove blocking + outcome</b><br/><b>columns</b> (no leakage)>];
+    r1b [label=<<b>model B</b>: block burst?<br/>(5+ new blockers, 30 days)>];
+    r1c [label=<<b>model T</b>: platform action?<br/>(takedown / review / abuse / adult)>];
+    r1d [label=<<b>XGBoost</b> 70/10/20 split<br/>AUC on held-out 20%<br/><b>SHAP</b>: which features matter>];
+    r1e [label=<<b>compare B vs T</b><br/>rank correlation, top-10 overlap,<br/>lift, by language, by blocker type>];
+  }
+  subgraph cluster_rq2 { label="4b. RQ2  timing  (12, 13)"; style="rounded,filled"; fillcolor="#eef7ee"; color="#9cc79c"; fontsize=11;
+    r2a [label=<<b>crowd alert</b> =<br/>5th ordinary blocker<br/>(heavy blockers excluded)>];
+    r2b [label=<<b>alert vs first platform action</b><br/>who first, lead time (days),<br/>Kaplan-Meier, Cox>];
+    r2c [label=<<b>review queue test</b><br/>rank by crowd signal<br/>vs random; event study>];
+  }
+  subgraph cluster_rq3 { label="4c. RQ3  blind spots  (14)"; style="rounded,filled"; fillcolor="#eef7ee"; color="#9cc79c"; fontsize=11;
+    r3a [label=<<b>judge model</b> learns abuse labels<br/>no language, no blocking,<br/>5-fold out-of-fold scores>];
+    r3b [label=<<b>groups</b>: crowd only /<br/>platform only / both / neither>];
+    r3c [label=<<b>validate</b>: high-score crowd-only<br/>accounts labelled later?<br/>by followers, by language>];
+  }
+
+  out [label=<<b>5. OUTPUT</b>  results/<br/>figures png + pdf, tables csv,<br/>one log per step<br/>RQ1: F40-F80  RQ2: F90-F99  RQ3: F101-F107>, shape=note, fillcolor="#fffbe6", color="#c9b45c"];
+
+  // ---------------- flows (edge labels = files passed on)
+  fh -> s01; snap -> s02; snap -> s05; lab -> s03;
+  {rank=same; s01; s02; s05; s03}
+  {rank=same; s06; s07}
+  s01 -> s04 [label="graph, ops"]; s02 -> s04 [label="blocks, lists"];
+  s01 -> s07 [label="ops, posts"]; s05 -> s07 [label="repo_rev"];
+  s02 -> s06 [label="posts, follows"]; s05 -> s06;
+  s03 -> s06 [label="label events"]; s03 -> s07;
+  s04 -> s06 [label="block_edges"]; s04 -> s07;
+  s06 -> s10 [label="accounts_T0"]; s07 -> s10 [label="accounts_new"]; s10 -> s11;
+  r1a -> r1b; r1a -> r1c; r1b -> r1d; r1c -> r1d; r1d -> r1e;
+  r2a -> r2b -> r2c;
+  r3a -> r3b -> r3c;
+  s11 -> r1a [label=" accounts + tox scores"]; s11 -> r2a [label=" + block_edges"]; s11 -> r3a [label=" + tox2 scores"];
+  r1e -> out; r2c -> out; r3c -> out;
+
+  lib [label=<<b>src/bskymod</b> (used by every step)<br/>common.py: config, DuckDB (UTC), logs<br/>outcomes.py: platform action definitions<br/>viz.py: figure style (png + pdf + csv)>, fillcolor="#ffffff", color="#999999", fontsize=9];
+  run [label=<<b>How it runs</b><br/>exp/demo/run_demo.sh &lt;stage&gt;<br/>-&gt; exp/run_&lt;stage&gt;.sh<br/>-&gt; python src/.../step.py --config &lt;file&gt;<br/>same code for real and demo data,<br/>only the config file changes>, fillcolor="#ffffff", color="#999999", fontsize=9];
+  {rank=same; out; lib; run}
+  lib -> out [style=invis]; out -> run [style=invis];
 }
